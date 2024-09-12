@@ -56,7 +56,7 @@ def clean(spark: SparkSession, environment: str, tag: str):
 
     # Upload files to S3 bucket
     subprocess.run(["aws", "s3", "cp", f"./data_out/{tag}", f"s3://dataminded-academy-capstone-llm-data-us/cleaned/{tag}/thomas/", "--recursive"])
-    print("Uploaded files to AWS Bucket")
+    print(f"Uploaded files to AWS Bucket /cleaned/{tag}/thomas/")
     
 
 def main():
