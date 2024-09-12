@@ -1,8 +1,8 @@
 import argparse
 import logging
 import subprocess
-import os
 import pyspark.sql.functions as psf
+import os
 from pyspark.sql import SparkSession
 
 from capstonellm.common.spark import ClosableSparkSession
@@ -11,13 +11,11 @@ logger = logging.getLogger(__name__)
 
 def clean(spark: SparkSession, environment: str, tag: str):
 
-    # download the ingested data from S3 for the given tag (skip this step in env local if file is already present)
+    # download the ingested data from S3 for the given tag
     print(f"Downloading {tag}/question.json")
-    if environment == "local" and not os.path.isfile(f"./data_in/{tag}/questions.json"):
-        subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json", f"./data_in/{tag}/"])
+    subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json", f"./data_in/{tag}/"])
     print(f"Downloading {tag}/answers.json")
-    if environment == "local" and not os.path.isfile("./data_in/" +tag +"/answers.json"):
-        subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json", f"./data_in/{tag}/"])
+    subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json", f"./data_in/{tag}/"])
 
     # Read JSON files into a DataFrame
     questions_in = spark.read.json(f"./data_in/{tag}/questions.json")
@@ -47,10 +45,18 @@ def clean(spark: SparkSession, environment: str, tag: str):
     print("Finished Joining the questions with the answers")
 
     # Write the transformed data to a JSON (output) file
-    output_file = f"./data_out/{tag}/"
-    output.repartition(output.count()).write.mode("overwrite").json(output_file)
-    print(f"Wrote output to {output_file}")
+    output_folder = f"./data_out/{tag}/"
+    output.repartition(output.count()).write.mode("overwrite").json(output_folder)
+    print(f"Wrote output to {output_folder}")
 
+    # Delete unnecessary files (we only need the json files)
+    for filename in os.listdir(f"./data_out/{tag}/"):
+        if not filename.endswith(".json"):
+            os.remove(os.path.join(f"./data_out/{tag}/", filename))
+
+    # Upload files to S3 bucket
+    subprocess.run(["aws", "s3", "cp", f"./data_out/{tag}", f"s3://dataminded-academy-capstone-llm-data-us/cleaned/{tag}/thomas/", "--recursive"])
+    print("Uploaded files to AWS Bucket")
     
 
 def main():
