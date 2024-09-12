@@ -2,6 +2,7 @@ import argparse
 import logging
 import subprocess
 import os
+import pyspark.sql.functions as psf
 from pyspark.sql import SparkSession
 
 from capstonellm.common.spark import ClosableSparkSession
@@ -9,7 +10,8 @@ from capstonellm.common.spark import ClosableSparkSession
 logger = logging.getLogger(__name__)
 
 def clean(spark: SparkSession, environment: str, tag: str):
-    # download the ingested data from S3 for the given tag
+
+    # download the ingested data from S3 for the given tag (skip this step in env local if file is already present)
     print(f"Downloading {tag}/question.json")
     if environment == "local" and not os.path.isfile(f"./data_in/{tag}/questions.json"):
         subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json", f"./data_in/{tag}/"])
@@ -17,17 +19,32 @@ def clean(spark: SparkSession, environment: str, tag: str):
     if environment == "local" and not os.path.isfile("./data_in/" +tag +"/answers.json"):
         subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json", f"./data_in/{tag}/"])
 
-    # process the data
-    questions = spark.read.json(f"./data_in/{tag}/questions.json")
-    answers = spark.read.json(f"./data_in/{tag}/answers.json")
+    # Read JSON files into a DataFrame
+    questions_in = spark.read.json(f"./data_in/{tag}/questions.json")
+    answers_in = spark.read.json(f"./data_in/{tag}/answers.json")
 
-    questions_w_answers = (
-        questions
-            .join(answers, on="question_id", how="inner")
-            .select(questions.title, questions.body.alias("question"), answers.body.alias("answer"))
+    # Flatten JSON Files
+    questions = ( 
+        questions_in
+            .select(psf.explode(questions_in.items).alias("items"))
+            .filter(psf.col("items.accepted_answer_id").isNotNull())
+            .select(psf.col("items.body").alias("question"), "items.title", "items.is_answered", "items.accepted_answer_id")
+    )
+    answers = ( 
+        answers_in
+            .select(psf.explode(answers_in.items).alias("items"))
+            .select(psf.col("items.body").alias("answer"), "items.answer_id", "items.question_id")
     )
 
-    questions_w_answers.to_json(f"./data_out/{tag}.json")
+    # Join questions with answers
+    output = (
+        questions
+            .join(answers, on=(questions.accepted_answer_id == answers.answer_id))
+            .select("title", "question", "answer")
+    )
+
+    # Write the transformed data to a JSON (output) file
+    output.write.json(f"./data_out/{tag}.json")
 
     
 
