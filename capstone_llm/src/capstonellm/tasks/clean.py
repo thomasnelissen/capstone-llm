@@ -9,12 +9,7 @@ logger = logging.getLogger(__name__)
 
 def clean(spark: SparkSession, environment: str, tag: str):
 
-    # download the ingested data from S3 for the given tag
-    # subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json", f"./data_in/{tag}/"])
-    # subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json", f"./data_in/{tag}/"])
-
     # Read JSON files into a DataFrame
-    # questions_in = spark.read.json(f"./data_in/{tag}/questions.json")
     answers_in = spark.read.json(f"s3a://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json")
     questions_in = spark.read.json(f"s3a://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json")
 
