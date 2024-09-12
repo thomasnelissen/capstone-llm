@@ -1,8 +1,6 @@
 import argparse
 import logging
-import subprocess
 import pyspark.sql.functions as psf
-import os
 from pyspark.sql import SparkSession
 
 from capstonellm.common.spark import ClosableSparkSession
@@ -12,12 +10,13 @@ logger = logging.getLogger(__name__)
 def clean(spark: SparkSession, environment: str, tag: str):
 
     # download the ingested data from S3 for the given tag
-    subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json", f"./data_in/{tag}/"])
-    subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json", f"./data_in/{tag}/"])
+    # subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json", f"./data_in/{tag}/"])
+    # subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json", f"./data_in/{tag}/"])
 
     # Read JSON files into a DataFrame
-    questions_in = spark.read.json(f"./data_in/{tag}/questions.json")
-    answers_in = spark.read.json(f"./data_in/{tag}/answers.json")
+    # questions_in = spark.read.json(f"./data_in/{tag}/questions.json")
+    answers_in = spark.read.json(f"s3a://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json")
+    questions_in = spark.read.json(f"s3a://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json")
 
     # Flatten JSON Files
     questions = ( 
@@ -39,17 +38,8 @@ def clean(spark: SparkSession, environment: str, tag: str):
             .select("title", "question", "answer")
     )
 
-    # Write the transformed data to a JSON (output) file
-    output_folder = f"./data_out/{tag}/"
-    output.repartition(output.count()).write.mode("overwrite").json(output_folder)
-
-    # Delete unnecessary files (we only need the json files)
-    for filename in os.listdir(f"./data_out/{tag}/"):
-        if not filename.endswith(".json"):
-            os.remove(os.path.join(f"./data_out/{tag}/", filename))
-
-    # Upload files to S3 bucket
-    subprocess.run(["aws", "s3", "cp", f"./data_out/{tag}", f"s3://dataminded-academy-capstone-llm-data-us/cleaned/{tag}/thomas/", "--recursive"])
+    # Write output to S3 bucket
+    output.repartition(output.count()).write.mode("overwrite").json(f"s3a://dataminded-academy-capstone-llm-data-us/cleaned/{tag}/thomas/")
     print(f"Uploaded files to AWS Bucket /cleaned/{tag}/thomas/")
     
 
