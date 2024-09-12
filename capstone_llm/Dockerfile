@@ -9,7 +9,4 @@ WORKDIR /opt/spark/work-dir
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt --no-cache-dir
 COPY . .
-RUN pip3 install -e .
-ENV environment=""
-ENV tag=""
-CMD ["capstonellm.tasks.clean", "-t ${tag}}", "-e ${env}"]
+RUN pip3 install .
