@@ -22,6 +22,7 @@ def clean(spark: SparkSession, environment: str, tag: str):
     # Read JSON files into a DataFrame
     questions_in = spark.read.json(f"./data_in/{tag}/questions.json")
     answers_in = spark.read.json(f"./data_in/{tag}/answers.json")
+    print("Parsed JSON files to DataFrame")
 
     # Flatten JSON Files
     questions = ( 
@@ -35,6 +36,7 @@ def clean(spark: SparkSession, environment: str, tag: str):
             .select(psf.explode(answers_in.items).alias("items"))
             .select(psf.col("items.body").alias("answer"), "items.answer_id", "items.question_id")
     )
+    print("Flattened the JSON DataFrames")
 
     # Join questions with answers
     output = (
@@ -42,9 +44,12 @@ def clean(spark: SparkSession, environment: str, tag: str):
             .join(answers, on=(questions.accepted_answer_id == answers.answer_id))
             .select("title", "question", "answer")
     )
+    print("Finished Joining the questions with the answers")
 
     # Write the transformed data to a JSON (output) file
-    output.write.json(f"./data_out/{tag}.json")
+    output_file = f"./data_out/{tag}/"
+    output.repartition(output.count()).write.mode("overwrite").json(output_file)
+    print(f"Wrote output to {output_file}")
 
     
 
