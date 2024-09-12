@@ -12,15 +12,12 @@ logger = logging.getLogger(__name__)
 def clean(spark: SparkSession, environment: str, tag: str):
 
     # download the ingested data from S3 for the given tag
-    print(f"Downloading {tag}/question.json")
     subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json", f"./data_in/{tag}/"])
-    print(f"Downloading {tag}/answers.json")
     subprocess.run(["aws", "s3", "cp", f"s3://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json", f"./data_in/{tag}/"])
 
     # Read JSON files into a DataFrame
     questions_in = spark.read.json(f"./data_in/{tag}/questions.json")
     answers_in = spark.read.json(f"./data_in/{tag}/answers.json")
-    print("Parsed JSON files to DataFrame")
 
     # Flatten JSON Files
     questions = ( 
@@ -34,7 +31,6 @@ def clean(spark: SparkSession, environment: str, tag: str):
             .select(psf.explode(answers_in.items).alias("items"))
             .select(psf.col("items.body").alias("answer"), "items.answer_id", "items.question_id")
     )
-    print("Flattened the JSON DataFrames")
 
     # Join questions with answers
     output = (
@@ -42,12 +38,10 @@ def clean(spark: SparkSession, environment: str, tag: str):
             .join(answers, on=(questions.accepted_answer_id == answers.answer_id))
             .select("title", "question", "answer")
     )
-    print("Finished Joining the questions with the answers")
 
     # Write the transformed data to a JSON (output) file
     output_folder = f"./data_out/{tag}/"
     output.repartition(output.count()).write.mode("overwrite").json(output_folder)
-    print(f"Wrote output to {output_folder}")
 
     # Delete unnecessary files (we only need the json files)
     for filename in os.listdir(f"./data_out/{tag}/"):
