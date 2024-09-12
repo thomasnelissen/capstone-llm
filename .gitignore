@@ -7,4 +7,6 @@ config
 logs
 plugins
 
-data*/
+data/
+data_in/
+data_out/
