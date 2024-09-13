@@ -21,7 +21,7 @@ with DAG(
     schedule_interval="0 0 * * *",
     catchup=False,
 ) as dag:
-    role = "arn:aws:iam::338791806049:role/seasonal-school-gitpod-role"
+    role = "capstone_conveyor_llm"
     dag.doc_md = __doc__
     tags = ["airflow", "apache-spark", "dbt", "docker", "pyspark", "python-polars", "sql"]
     tasks = [
