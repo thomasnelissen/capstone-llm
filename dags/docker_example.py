@@ -1,59 +1,57 @@
 from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.bash import BashOperator
 from airflow.providers.docker.operators.docker import DockerOperator
-from airflow.operators.empty import EmptyOperator
+import os
 
 default_args = {
     "owner": "airflow",
-    "description": "Use of the DockerOperator",
+    "description": "Capstone ingest and clean",
     "depend_on_past": False,
-    "start_date": datetime(2021, 5, 1),
+    "start_date": datetime(2024, 9, 12),
     "email_on_failure": False,
     "email_on_retry": False,
-    "retries": 1,
+    "retries": 0,
     "retry_delay": timedelta(minutes=5),
 }
 
 with DAG(
-    "docker_operator_dag",
+    "Capstone",
     default_args=default_args,
-    schedule_interval="5 * * * *",
+    schedule_interval="0 0 * * *",
     catchup=False,
 ) as dag:
-    start_dag = EmptyOperator(task_id="start_dag")
+    dag.doc_md = __doc__
+    # ingest_task = DockerOperator(
+    #     task_id="capstone_ingest",
+    #     image="capstone",
+    #     container_name="capstone_ingest",
+    #     api_version="auto",
+    #     auto_remove=True,
+    #     command="python3 -m capstonellm.tasks.ingest -t pyspark",
+    #     environment={
+    #         "AWS_ACCESS_KEY_ID": "{{ env['AWS_ACCESS_KEY_ID'] }}",
+    #         "AWS_SECRET_ACCESS_KEY": "{{ env['AWS_SECRET_ACCESS_KEY']' }}",
+    #         "AWS_SESSION_TOKEN": "{{ env['AWS_SESSION_TOKEN'] }}"
+    #     },
+    #     docker_url="unix://var/run/docker.sock",
+    #     network_mode="bridge",
+    # )
 
-    end_dag = EmptyOperator(task_id="end_dag")
-
-    t1 = BashOperator(task_id="print_current_date", bash_command="date")
-
-    t2 = DockerOperator(
-        task_id="docker_command_sleep",
-        image="docker_image_task",
-        container_name="task___command_sleep",
+    clean_task = DockerOperator(
+        task_id="capstone_clean",
+        image="capstone",
+        container_name="capstone_clean",
         api_version="auto",
         auto_remove=True,
-        command="/bin/sleep 30",
+        command="python3 -m capstonellm.tasks.clean -e local -t pyspark",
+        environment={
+            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+            "AWS_SESSION_TOKEN": os.getenv("AWS_SESSION_TOKEN")
+        },
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
     )
-
-    t3 = DockerOperator(
-        task_id="docker_command_hello",
-        image="docker_image_task",
-        container_name="task___command_hello",
-        api_version="auto",
-        auto_remove=True,
-        command="/bin/sleep 40",
-        docker_url="unix://var/run/docker.sock",
-        network_mode="bridge",
-    )
-
-    t4 = BashOperator(task_id="print_hello", bash_command='echo "hello world"')
-
-    start_dag >> t1
-
-    t1 >> t2 >> t4
-    t1 >> t3 >> t4
-
-    t4 >> end_dag
+    
+    # ingest_task >> clean_task
+    clean_task

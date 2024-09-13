@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 def clean(spark: SparkSession, environment: str, tag: str):
 
     # Read JSON files into a DataFrame
-    answers_in = spark.read.json(f"s3a://dataminded-academy-capstone-llm-data-us/input/{tag}/answers.json")
-    questions_in = spark.read.json(f"s3a://dataminded-academy-capstone-llm-data-us/input/{tag}/questions.json")
+    s3_bucket = "s3a://dataminded-academy-capstone-llm-data-us"
+    answers_in = spark.read.json(f"{s3_bucket}/input/{tag}/answers.json")
+    questions_in = spark.read.json(f"{s3_bucket}/input/{tag}/questions.json")
 
     # Flatten JSON Files
     questions = ( 
@@ -34,7 +35,7 @@ def clean(spark: SparkSession, environment: str, tag: str):
     )
 
     # Write output to S3 bucket
-    output.repartition(output.count()).write.mode("overwrite").json(f"s3a://dataminded-academy-capstone-llm-data-us/cleaned/{tag}/thomas/")
+    output.repartition(output.count()).write.mode("overwrite").json(f"{s3_bucket}/cleaned/{tag}/thomas/")
     print(f"Uploaded files to AWS Bucket /cleaned/{tag}/thomas/")
     
 
