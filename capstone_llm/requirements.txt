@@ -4,7 +4,25 @@
 #
 #    pip-compile requirements.in
 #
+boto3==1.35.18
+    # via -r requirements.in
+botocore==1.35.18
+    # via
+    #   boto3
+    #   s3transfer
+jmespath==1.0.1
+    # via
+    #   boto3
+    #   botocore
 py4j==0.10.9.7
     # via pyspark
 pyspark==3.5.1
     # via -r requirements.in
+python-dateutil==2.9.0.post0
+    # via botocore
+s3transfer==0.10.2
+    # via boto3
+six==1.16.0
+    # via python-dateutil
+urllib3==2.2.3
+    # via botocore
