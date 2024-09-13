@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.operators.empty import EmptyOperator
+from airflow.utils.trigger_rule import TriggerRule
 import os
 
 default_args = {
@@ -37,21 +39,28 @@ with DAG(
     #     network_mode="bridge",
     # )
 
-    clean_task = DockerOperator(
-        task_id="capstone_clean",
+    tags = ["airflow", "apache-spark", "dbt", "docker", "pyspark", "python-polars", "sql"]
+
+    tasks = [
+        DockerOperator(
+        task_id="capstone_clean_" + tag,
+        trigger_rule=TriggerRule.ALL_DONE,
         image="capstone",
-        container_name="capstone_clean",
+        container_name="capstone_clean_" + tag,
         api_version="auto",
         auto_remove=True,
-        command="python3 -m capstonellm.tasks.clean -e local -t pyspark",
+        command="python3 -m capstonellm.tasks.clean -e production -t " + tag,
         environment={
             "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
             "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
             "AWS_SESSION_TOKEN": os.getenv("AWS_SESSION_TOKEN")
         },
         docker_url="unix://var/run/docker.sock",
-        network_mode="bridge",
+        network_mode="bridge") for tag in tags
+    ]
+
+    empty = EmptyOperator(
+        task_id="dummy"
     )
-    
-    # ingest_task >> clean_task
-    clean_task
+
+    tasks[0] >> tasks[1] >> empty >> tasks[2] >> tasks[3] >> tasks[4] >> tasks[5] >> tasks[6]
