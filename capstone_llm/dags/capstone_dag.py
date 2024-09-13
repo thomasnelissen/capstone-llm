@@ -16,7 +16,7 @@ default_args = {
 }
 
 with DAG(
-    "Capstone Thomas",
+    "capstone_thomas",
     default_args=default_args,
     schedule_interval="0 0 * * *",
     catchup=False,
@@ -29,7 +29,7 @@ with DAG(
             task_id="capstone_clean_" + tag,
             trigger_rule=TriggerRule.ALL_DONE,
             image="thomasnelissen/capstone",
-            cmds=["python3", "-m", "capstonellm.tasks.clean", "-e production", f"-t {tag}"],
+            cmds=["python3", "-m", "capstonellm.tasks.clean", "-e", "production", "-t", tag],
             aws_role=role,
             instance_type='mx.micro',
         ) for tag in tags
