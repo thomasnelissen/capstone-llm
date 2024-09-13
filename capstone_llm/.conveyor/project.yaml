@@ -1,0 +1,15 @@
+docker:
+    path: .
+id: 333275cb-38f3-48d7-b471-1b50906a9022
+ide:
+    filename: ide.yaml
+name: capstone-llm-thomas
+resources:
+    path: resources
+streaming:
+    filename: streaming.yaml
+template: ""
+version: "0.3"
+workflows:
+    path: dags
+    version: "2"

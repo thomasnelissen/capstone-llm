@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 
 def clean(spark: SparkSession, environment: str, tag: str):
 
+    tag = tag.strip()
+    print(tag)
+
     # Read JSON files into a DataFrame
     s3_bucket = "s3a://dataminded-academy-capstone-llm-data-us"
     answers_in = spark.read.json(f"{s3_bucket}/input/{tag}/answers.json")

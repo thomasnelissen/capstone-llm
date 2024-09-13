@@ -16,7 +16,7 @@ default_args = {
 }
 
 with DAG(
-    "Capstone",
+    "Capstone Thomas",
     default_args=default_args,
     schedule_interval="0 0 * * *",
     catchup=False,
@@ -28,8 +28,8 @@ with DAG(
         ConveyorContainerOperatorV2(
             task_id="capstone_clean_" + tag,
             trigger_rule=TriggerRule.ALL_DONE,
-            image="capstone",
-            cmds=["python3", "-m", "capstonellm.tasks.clean", "-e production", "-t " + tag],
+            image="thomasnelissen/capstone",
+            cmds=["python3", "-m", "capstonellm.tasks.clean", "-e production", f"-t {tag}"],
             aws_role=role,
             instance_type='mx.micro',
         ) for tag in tags
@@ -56,4 +56,4 @@ with DAG(
         task_id="dummy"
     )
 
-    tasks[0] >> tasks[1] >> empty >> tasks[2] >> tasks[3] >> tasks[4] >> tasks[5] >> tasks[6]
+    tasks[0] >> tasks[1] >> tasks[2] >> tasks[3] >> tasks[4] >> tasks[5] >> tasks[6]
